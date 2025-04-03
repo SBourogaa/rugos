@@ -222,9 +222,10 @@ ansible ruglets -m shell -a "tail -n 50 /var/log/syslog"
 
 ## 📚 References
 
-- [K3s Documentation](https://docs.k3s.io/)
+- [Docker Docs](https://docs.docker.com/)
+- [Docker Compose Docs](https://docs.docker.com/compose/)
 - [Ansible User Guide](https://docs.ansible.com/ansible/latest/user_guide/index.html)
 - [Prometheus Best Practices](https://prometheus.io/docs/practices/naming/)
-- [Grafana Dashboard Creation](https://grafana.com/docs/grafana/latest/dashboards/)
-- [Docker Compose Docs](https://docs.docker.com/compose/)
 - [Node Exporter](https://prometheus.io/docs/guides/node-exporter/)
+- [Grafana Dashboard Creation](https://grafana.com/docs/grafana/latest/dashboards/)
+- [K3s Documentation](https://docs.k3s.io/)
