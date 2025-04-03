@@ -1,0 +1,20 @@
+---
+- name: Configure kubectl on control node
+  hosts: rugctl
+  tasks:
+    - name: Create .kube directory
+      file:
+        path: ~/.kube
+        state: directory
+        mode: '0755'
+
+    - name: Get kubeconfig from K3s container
+      shell: docker exec k3s-server cat /etc/rancher/k3s/k3s.yaml
+      register: kubeconfig
+      changed_when: false
+
+    - name: Save kubeconfig
+      copy:
+        content: "{{ kubeconfig.stdout }}"  # Use the config as-is since we're using host networking
+        dest: ~/.kube/config
+        mode: '0600'

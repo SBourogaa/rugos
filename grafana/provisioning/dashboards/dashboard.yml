@@ -1,0 +1,13 @@
+apiVersion: 1  # Grafana provisioning API version
+
+providers:
+  - name: 'Default' # Provider name for identification
+    orgId: 1 # Organization ID (default is 1)
+    folder: '' # Optional folder to group dashboards
+    folderUid: '' # Optional unique identifier for the folder
+    type: file # Load dashboards from files
+    disableDeletion: false # Allow dashboard deletion
+    updateIntervalSeconds: 10 # How often to check for dashboard changes
+    allowUiUpdates: true # Allow dashboard modifications in UI
+    options:
+      path: /var/lib/grafana/dashboards # Path to dashboard JSON files

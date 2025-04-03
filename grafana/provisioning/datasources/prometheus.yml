@@ -1,0 +1,9 @@
+apiVersion: 1  # Grafana provisioning API version
+
+datasources:
+  - name: Prometheus # Display name in Grafana UI
+    type: prometheus # Data source type
+    access: proxy # Grafana will proxy requests to Prometheus
+    url: http://localhost:9090  # Prometheus server URL
+    isDefault: true # Set as default data source
+    editable: false # Prevent UI modification of data source settings

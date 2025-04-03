@@ -1,0 +1,59 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'rugos'
+    static_configs:
+      - targets:
+          - '10.42.0.100:9100'
+          - '10.42.0.101:9100'
+          - '10.42.0.102:9100'
+          - '10.42.0.103:9100'
+          - '10.42.0.104:9100'
+          - '10.42.0.105:9100'
+        labels:
+          type: 'ruglet'
+      - targets: ['10.42.0.1:9100']
+        labels:
+          type: 'rugctl'
+
+    relabel_configs:
+      - source_labels: [__address__, type]
+        regex: '10\.42\.0\.1:9100;(rugctl)'
+        target_label: instance
+        replacement: 'rugctl'
+
+      - source_labels: [__address__, type]
+        regex: '10\.42\.0\.(.*):9100;(ruglet)'
+        target_label: instance
+        replacement: 'ruglet-$1'
+
+      - source_labels: [instance]
+        regex: 'ruglet-100'
+        target_label: instance
+        replacement: 'ruglet-1'
+
+      - source_labels: [instance]
+        regex: 'ruglet-101'
+        target_label: instance
+        replacement: 'ruglet-2'
+
+      - source_labels: [instance]
+        regex: 'ruglet-102'
+        target_label: instance
+        replacement: 'ruglet-3'
+
+      - source_labels: [instance]
+        regex: 'ruglet-103'
+        target_label: instance
+        replacement: 'ruglet-4'
+
+      - source_labels: [instance]
+        regex: 'ruglet-104'
+        target_label: instance
+        replacement: 'ruglet-5'
+
+      - source_labels: [instance]
+        regex: 'ruglet-105'
+        target_label: instance
+        replacement: 'ruglet-6'

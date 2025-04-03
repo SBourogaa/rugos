@@ -1,0 +1,6 @@
+---
+- name: Ping all ruglets
+  hosts: ruglets
+  tasks:
+    - name: Ping test
+      ping:

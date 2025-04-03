@@ -1,0 +1,92 @@
+---
+- name: Install K3s on Raspberry Pi cluster nodes
+  hosts: ruglets
+  become: true
+  vars:
+    k3s_token: "{{ lookup('file', '../../.env') | regex_search('K3S_TOKEN=(.+)', '\\1') | first }}"
+    k3s_control_node: "10.42.0.1"
+    k3s_version: "v1.32.1+k3s1"
+  vars_prompt:
+    - name: "ansible_become_pass"
+      prompt: "Enter sudo password"
+      private: yes
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - systemd
+          - iptables
+          - apt-transport-https
+          - ca-certificates
+          - python3-apt
+          - sudo
+        state: present
+        update_cache: yes
+
+    - name: Configure sysctl for K3s
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      with_items:
+        - { name: 'net.ipv4.ip_forward', value: '1' }
+        - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+
+    - name: Download K3s installation script
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: '0755'
+
+    - name: Install K3s agent
+      shell: |
+        export INSTALL_K3S_SKIP_START=true
+        export K3S_URL=https://{{ k3s_control_node }}:6443
+        export K3S_TOKEN={{ k3s_token }}
+        export INSTALL_K3S_VERSION={{ k3s_version }}
+        export INSTALL_K3S_EXEC="agent \
+          --node-taint arm=true:NoExecute \
+          --kubelet-arg=system-reserved=memory=512Mi \
+          --kubelet-arg=kube-reserved=memory=512Mi \
+          --kubelet-arg=eviction-hard=memory.available<1Gi \
+          --kubelet-arg=eviction-minimum-reclaim=memory.available=500Mi"
+        sh /tmp/k3s-install.sh
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Create K3s config directory
+      file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: '0755'
+
+    - name: Configure K3s agent
+      copy:
+        content: |
+          K3S_URL=https://{{ k3s_control_node }}:6443
+          K3S_TOKEN={{ k3s_token }}
+          K3S_NODE_NAME={{ inventory_hostname }}
+        dest: /etc/rancher/k3s/config.env
+        mode: '0600'
+      register: k3s_config
+
+    - name: Restart K3s agent if config changed
+      systemd:
+        name: k3s-agent
+        state: restarted
+        daemon_reload: yes
+      when: k3s_config.changed
+
+    - name: Ensure K3s agent is running and enabled
+      systemd:
+        name: k3s-agent
+        state: started
+        enabled: yes
+
+    - name: Clean up installation script
+      file:
+        path: /tmp/k3s-install.sh
+        state: absent

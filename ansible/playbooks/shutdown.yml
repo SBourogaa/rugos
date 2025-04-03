@@ -1,0 +1,14 @@
+---
+- name: Shutdown all ruglets
+  hosts: ruglets
+  become: true
+  vars_prompt:
+    - name: "ansible_become_pass"
+      prompt: "Enter sudo password"
+      private: yes
+
+  tasks:
+    - name: Shutdown now
+      command: shutdown -h now
+      async: 1 # Run the command asynchronously
+      poll: 0 # Do not wait for the command to finish
