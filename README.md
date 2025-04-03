@@ -65,7 +65,7 @@ Nobody likes surprises, and there will be plenty of those, so RugOS uses:
 1. Set up environment:
 ```bash
 echo "K3S_TOKEN=your_secure_token" > .env
-ls -l ssh_keys/ed25519
+ls -l ssh/ed25519
 ```
 
 2. Start control plane:
