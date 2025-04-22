@@ -1,6 +1,11 @@
 ---
 - name: Configure kubectl on control node
   hosts: rugctl
+  become: true
+  vars_prompt:
+    - name: "ansible_become_pass"
+      prompt: "Enter sudo password"
+      private: yes
   tasks:
     - name: Create .kube directory
       file:

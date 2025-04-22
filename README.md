@@ -65,13 +65,11 @@ Nobody likes surprises, and there will be plenty of those, so RugOS uses:
 1. Set up environment:
 ```bash
 echo "K3S_TOKEN=your_secure_token" > .env
-ls -l ssh/ed25519
 ```
 
 2. Start control plane:
 ```bash
-docker compose up -d
-docker ps
+docker compose up --build -d
 ```
 
 3. Verify node connectivity:
