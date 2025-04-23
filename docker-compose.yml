@@ -7,13 +7,16 @@ services:
     command: >-
       server
       --cluster-cidr=10.44.0.0/16 # Cluster CIDR range
+      --tls-san=10.42.0.1
     privileged: true
     network_mode: "host"
-    environment:
+    env_file:
       - .env
     volumes:
       # Named volume for K3s data persistence
       - k3s-server:/var/lib/rancher/k3s 
+    restart: always
+  
   prometheus:
     container_name: prometheus
     image: prom/prometheus:latest
@@ -21,6 +24,7 @@ services:
     volumes:
       # Mount Prometheus configuration file
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: always
 
   grafana:
     container_name: grafana
@@ -36,6 +40,7 @@ services:
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       # Pre-configured dashboards
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: always
 
 volumes:
   # Stores Grafana configurations and data

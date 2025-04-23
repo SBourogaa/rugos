@@ -227,3 +227,7 @@ ansible ruglets -m shell -a "tail -n 50 /var/log/syslog"
 - [Node Exporter](https://prometheus.io/docs/guides/node-exporter/)
 - [Grafana Dashboard Creation](https://grafana.com/docs/grafana/latest/dashboards/)
 - [K3s Documentation](https://docs.k3s.io/)
+
+## TODO: 
+
+[ ] If K3S container goes down, the nodes will not automatically reconnect. Rather, we have to clean up the nodes, restart the K3S container, and rejoin the nodes. This is suffering. Pls fix. 
