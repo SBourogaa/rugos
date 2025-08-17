@@ -1,0 +1,31 @@
+all:
+  children:
+    ruglets:
+      hosts:
+        ruglet-1:
+          ansible_host: 10.42.0.100
+        ruglet-2:
+          ansible_host: 10.42.0.101
+        ruglet-3:
+          ansible_host: 10.42.0.102
+        ruglet-4:
+          ansible_host: 10.42.0.103
+        ruglet-5:
+          ansible_host: 10.42.0.104
+        ruglet-6:
+          ansible_host: 10.42.0.105
+      vars:
+        ansible_user: loqotia
+        ansible_connection: ssh
+        ansible_python_interpreter: /usr/bin/python3
+
+    control:
+      hosts:
+        rugctl:
+          ansible_host: localhost
+          ansible_become: yes
+          ansible_become_method: sudo
+      vars:
+        ansible_user: loqotia
+        ansible_connection: local
+        ansible_python_interpreter: /usr/bin/python3

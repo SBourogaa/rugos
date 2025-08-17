@@ -1,0 +1,64 @@
+---
+- name: Distribute registries.yaml to agents (copy from control host)
+  hosts: ruglets
+  become: true
+  gather_facts: false
+
+  vars:
+    registries_src: "{{ playbook_dir }}/../../k3s-etc/registries.yml"
+    registries_dst: "/etc/rancher/k3s/registries.yaml"
+
+  pre_tasks:
+    - name: Ensure source registries.yaml exists on control host
+      ansible.builtin.stat:
+        path: "{{ registries_src }}"
+      delegate_to: localhost
+      run_once: true
+      register: reg_src
+
+    - name: Abort if source registries.yaml is missing
+      ansible.builtin.fail:
+        msg: "Source file {{ registries_src }} not found. Create it and run again."
+      when: not reg_src.stat.exists
+      delegate_to: localhost
+      run_once: true
+
+  tasks:
+    - name: Ensure destination directory exists on agents
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: "0755"
+
+    - name: Copy registries.yaml to agents
+      ansible.builtin.copy:
+        src: "{{ registries_src }}"
+        dest: "{{ registries_dst }}"
+        owner: root
+        group: root
+        mode: "0644"
+      register: reg_copy
+
+    - name: Check if k3s-agent unit exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/k3s-agent.service
+      register: agent_unit
+
+    - name: Restart k3s-agent if registries.yaml changed
+      ansible.builtin.systemd:
+        name: k3s-agent
+        state: restarted
+      when:
+        - reg_copy.changed
+        - agent_unit.stat.exists
+
+- name: Optionally restart k3s-server container on control
+  hosts: control
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Restart k3s-server container (opt-in)
+      ansible.builtin.command: docker restart k3s-server
+      when: restart_server | default(false) | bool
+      changed_when: restart_server | default(false) | bool

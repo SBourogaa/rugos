@@ -1,0 +1,9 @@
+mirrors:
+  # Local Registry
+  "10.42.0.1:5000":
+    endpoint:
+      - "http://10.42.0.1:5000"
+configs:
+  "10.42.0.1:5000":
+    tls:
+      insecure_skip_verify: true

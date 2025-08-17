@@ -1,0 +1,68 @@
+services:
+  k3s-server:
+    container_name: k3s-server
+    image: rancher/k3s:v1.32.1-k3s1  
+    command:
+      - server
+      - --cluster-cidr=10.44.0.0/16 # Cluster CIDR range
+      - --service-cidr=10.45.0.0/16 # Service CIDR range (Cluster IP Services)
+      - --tls-san=10.42.0.1
+      - --write-kubeconfig-mode=644
+    privileged: true
+    network_mode: "host"
+    env_file:
+      - .env
+    volumes:
+      # Named volume for K3s data persistence
+      - k3s-server:/var/lib/rancher/k3s 
+      # Bind /etc/rancher/k3s so you can read k3s.yaml and drop registries.yaml.
+      - ./k3s-etc:/etc/rancher/k3s
+    restart: always
+  
+  registry:
+    container_name: docker-registry
+    image: registry:3
+    network_mode: "host"
+    volumes:
+      # Local Docker registry storage
+      - registry-storage:/var/lib/registry
+    restart: always
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    network_mode: "host" 
+    volumes:
+      # Mount Prometheus configuration file
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Persist Prometheus TSDB data
+      - prometheus-data:/prometheus
+    restart: always
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    network_mode: "host"
+    env_file:
+      - .env
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      # Named volume for Grafana data persistence
+      - grafana-storage:/var/lib/grafana
+      # Provisioning configurations
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      # Pre-configured dashboards
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: always
+
+volumes:
+  # Stores Grafana configurations and data
+  grafana-storage:
+  # Stores K3s cluster state and configurations
+  k3s-server: 
+  # Local Docker registry storage
+  registry-storage:
+  # Persist Prometheus time-series data
+  prometheus-data:

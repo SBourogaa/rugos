@@ -1,0 +1,11 @@
+---
+- name: Shutdown ruglets
+  hosts: ruglets
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Shutdown now
+      ansible.builtin.command: /sbin/shutdown -h now
+      async: 1
+      poll: 0
+      changed_when: true

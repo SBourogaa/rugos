@@ -1,0 +1,65 @@
+---
+- name: Kubectl wiring
+  hosts: control
+  become: true
+  gather_facts: true
+
+  vars:
+   # Install kubectl if missing
+    install_kubectl: true
+    # Written by k3s-server bind mount                                     
+    kubeconfig_src: "{{ playbook_dir }}/../../k3s-etc/k3s.yaml"
+    # Default kubeconfig path
+    kubeconfig_dest: "/home/{{ ansible_user }}/.kube/config"
+
+  pre_tasks:
+    - name: Check kubeconfig exists at kubeconfig_src
+      ansible.builtin.stat:
+        path: "{{ kubeconfig_src }}"
+      register: kcfg
+    - name: Fail if kubeconfig is missing (did you run docker compose?)
+      ansible.builtin.fail:
+        msg: "kubeconfig not found at {{ kubeconfig_src }}. Start the stack with: docker compose up -d"
+      when: not kcfg.stat.exists
+
+  tasks:
+    - name: Install kubectl (Arch)
+      community.general.pacman:
+        name: kubectl
+        state: present
+      when:
+        - install_kubectl | bool
+        - ansible_facts.os_family == "Archlinux"
+
+    - name: Install kubectl (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: kubectl
+        state: present
+        update_cache: yes
+      when:
+        - install_kubectl | bool
+        - ansible_facts.os_family == "Debian"
+
+    - name: Install kubectl (Fedora/RHEL family)
+      ansible.builtin.dnf:
+        name: kubectl
+        state: present
+      when:
+        - install_kubectl | bool
+        - ansible_facts.os_family in ["RedHat", "Rocky", "AlmaLinux", "Fedora"]
+
+    - name: Ensure ~/.kube exists
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.kube"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0700"
+
+    - name: Copy kubeconfig to ~/.kube/config
+      ansible.builtin.copy:
+        src: "{{ kubeconfig_src }}"
+        dest: "{{ kubeconfig_dest }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"

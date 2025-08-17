@@ -1,0 +1,7 @@
+---
+- name: Ping all ruglets
+  hosts: ruglets
+  gather_facts: false
+  tasks:
+    - name: Ping test
+      ansible.builtin.ping:

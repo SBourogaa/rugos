@@ -1,0 +1,129 @@
+---
+- name: Install K3s on cluster nodes.
+  hosts: ruglets
+  become: true
+  gather_facts: true
+  serial: 2
+  tags: [k3s, k3s_agent]
+
+  vars:
+    k3s_token: >-
+      {{ lookup('env','K3S_TOKEN')
+         | default((lookup('file', playbook_dir + '/../../.env')
+           | regex_search('^K3S_TOKEN=(.*)$', '\1', multiline=True)), true) }}
+    k3s_control_node: "10.42.0.1"
+    k3s_version: "v1.32.1+k3s1"
+
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+      tags: [apt_cache]
+
+    - name: Ensure br_netfilter will load on boot
+      copy:
+        dest: /etc/modules-load.d/k3s.conf
+        mode: "0644"
+        content: "br_netfilter\n"
+      tags: [sysctl]
+
+    - name: Load br_netfilter now
+      modprobe:
+        name: br_netfilter
+        state: present
+      tags: [sysctl]
+
+    - name: Persist Kubernetes sysctls
+      copy:
+        dest: /etc/sysctl.d/99-k3s.conf
+        mode: "0644"
+        content: |
+          net.ipv4.ip_forward=1
+          net.bridge.bridge-nf-call-iptables=1
+      notify: Reload sysctl
+      tags: [sysctl]
+
+    - name: Disable swap now
+      command: swapoff -a
+      changed_when: true
+      tags: [swap]
+
+    - name: Comment out swap entries in fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^\s*([^#]\S+\s+\S+\s+swap\s+\S+.*)$'
+        replace: '# \1'
+      tags: [swap]
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name: [curl, iptables, apt-transport-https, ca-certificates, python3-apt, sudo]
+        state: present
+      tags: [install, deps]
+
+    - name: Download K3s installation script
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: '0755'
+      tags: [install]
+
+    - name: Install K3s agent (binary + systemd unit)
+      shell: sh /tmp/k3s-install.sh agent
+      args:
+        creates: /etc/systemd/system/k3s-agent.service
+      environment:
+        INSTALL_K3S_SKIP_START: "true"
+        INSTALL_K3S_VERSION: "{{ k3s_version }}"
+      tags: [install]
+
+    - name: Ensure K3s config directory exists
+      file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: '0755'
+      tags: [config]
+
+    - name: Write k3s agent config.yaml
+      copy:
+        dest: /etc/rancher/k3s/config.yaml
+        mode: '0600'
+        content: |
+          server: https://{{ k3s_control_node }}:6443
+          token: {{ k3s_token }}
+          node-name: {{ inventory_hostname }}
+          kubelet-arg:
+            - system-reserved=memory=512Mi
+            - kube-reserved=memory=512Mi
+            - eviction-hard=memory.available<1Gi
+            - eviction-minimum-reclaim=memory.available=500Mi
+      notify: Restart k3s-agent
+      tags: [config]
+
+    - name: Ensure K3s agent is running and enabled
+      systemd:
+        name: k3s-agent
+        state: started
+        enabled: true
+        daemon_reload: true
+      tags: [service]
+
+    - name: Clean up installation script
+      file:
+        path: /tmp/k3s-install.sh
+        state: absent
+      tags: [cleanup]
+
+  handlers:
+    - name: Reload sysctl
+      command: sysctl --system
+      listen: Reload sysctl
+
+    - name: Restart k3s-agent
+      systemd:
+        name: k3s-agent
+        state: restarted
+        daemon_reload: true
+      listen: Restart k3s-agent

@@ -1,0 +1,60 @@
+---
+- name: Install monitoring tools
+  hosts: ruglets:control
+  become: true
+  gather_facts: true
+  tags: [monitoring]
+
+  vars:
+    # Debian family vs Archlinux
+    oskey: "{{ 'Archlinux' if ansible_facts.distribution == 'Archlinux' else ansible_facts.os_family }}"
+    # Package names per OS
+    node_exporter_pkg_map:
+      Debian: prometheus-node-exporter
+      Archlinux: prometheus-node-exporter
+    # Try these unit names in order; pick what exists
+    node_exporter_service_candidates:
+      Debian: ['prometheus-node-exporter', 'node_exporter']
+      Archlinux: ['prometheus-node-exporter', 'node_exporter']
+    base_tools: [htop, iotop, nmon]
+
+  pre_tasks:
+    - name: Update apt cache (Debian family)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: oskey == 'Debian'
+
+  tasks:
+    - name: Install Node Exporter
+      ansible.builtin.package:
+        name: "{{ node_exporter_pkg_map[oskey] }}"
+        state: present
+      tags: [node_exporter]
+
+    - name: Install basic monitoring tools
+      ansible.builtin.package:
+        name: "{{ base_tools }}"
+        state: present
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Pick Node Exporter service name
+      ansible.builtin.set_fact:
+        node_exporter_svc: >-
+          {{ 'prometheus-node-exporter' if 'prometheus-node-exporter.service' in ansible_facts.services
+             else ('node_exporter' if 'node_exporter.service' in ansible_facts.services
+             else omit) }}
+
+    - name: Fail if no Node Exporter unit was found
+      ansible.builtin.fail:
+        msg: "No node exporter systemd unit found (tried {{ node_exporter_service_candidates[oskey] | join(', ') }})"
+      when: node_exporter_svc is not defined
+
+    - name: Ensure Node Exporter is running and enabled
+      ansible.builtin.systemd:
+        name: "{{ node_exporter_svc }}"
+        state: started
+        enabled: true
+      tags: [node_exporter]

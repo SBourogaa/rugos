@@ -1,0 +1,5 @@
+.env
+*.env
+ssh/
+*.pem
+k3s-etc/k3s.yaml
