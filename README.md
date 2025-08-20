@@ -249,4 +249,4 @@ ansible ruglets -m shell -a "tail -n 50 /var/log/syslog"
 
 ---
 
-**Disclaimer:** RugOS is not responsible for any data loss, node failures, or existential crises caused by its use. Use at your own risk. RugOS is provided "as is" without any warranties or guarantees.
+**Disclaimer:** The software is provided “as is” without warranties or guarantees of any kind, express or implied. The authors are not responsible for any damages, including but not limited to data loss, system failures, hardware immolation, or existential crises resulting from its use.
